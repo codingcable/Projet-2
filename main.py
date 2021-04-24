@@ -13,7 +13,7 @@ def extraire_nombre(expression_brute):
     return int("".join(reversed(nombre_a_extraire)))
 
 
-#fonction qui converse la note en lettre en nombre
+# fonction qui convertie en nombre la note en lettre
 
 def convertir_en_nombre(nombre_en_lettre):
     notes = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five']
@@ -23,36 +23,60 @@ def convertir_en_nombre(nombre_en_lettre):
     return i
 
 
+# fonction qui convertit un chemin en url
+def convertir_chemin_en_url(chemin):
+    return 'http://books.toscrape.com/catalogue/' + chemin['href'][9:]
 
-url = 'http://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html'
+
+# fonction qui va chercher les informations d'une page correspondant à un livre
+def livre_informations(book_url):
+    response = requests.get(book_url)
+
+    if response.ok:
+        soup = BeautifulSoup(response.content, 'lxml')
+        titre = soup.find('h1')
+        product_information_description = soup.select('div + p')
+        link = soup.find_all('a')
+        product_information_values = soup.find_all('td')
+        star_rating = soup.find('p', class_='star-rating')['class'][1]
+
+    # création du dictionnaire des données scrapées
+
+    informations_demandees = {}
+    informations_demandees["url"] = book_url
+    informations_demandees["titre"] = titre.text
+    informations_demandees["description"] = product_information_description[0].text
+    informations_demandees["categorie"] = link[-1].text
+    informations_demandees["UPC"] = product_information_values[0].text
+    informations_demandees["prix hors taxes"] = product_information_values[2].text
+    informations_demandees["prix taxes incluses"] = product_information_values[3].text
+    informations_demandees["nombres disponibles"] = extraire_nombre(product_information_values[5].text)
+    informations_demandees["note"] = convertir_en_nombre(star_rating)
+
+    for key in informations_demandees:
+        print(key + ', ' + str(informations_demandees[key]))
+
+
+url = 'http://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html'
 
 response = requests.get(url)
 
 if response.ok:
     soup = BeautifulSoup(response.content, 'lxml')
-    titre = soup.find('h1')
-    product_information_description = soup.select('div + p')
-    link = soup.find_all('a')
-    product_information_values = soup.find_all('td')
-    product_information_rating = soup.select('p.star-rating')
-    star_rating = soup.find('p', class_ = 'star-rating')['class'][1]
+    chemins_vers_livre = soup.select('a[title]')
+    for chemin_vers_livre in chemins_vers_livre:
+        livre_url = convertir_chemin_en_url(chemin_vers_livre)
+        livre_informations(livre_url)
 
 
 
-
-# création du dictionnaire des données scrapées
-
-informations_demandees = {}
-informations_demandees["titre"] = titre.text
-informations_demandees["description"] = product_information_description[0].text
-informations_demandees["categorie"] = link[-1].text
-informations_demandees["UPC"] = product_information_values[0].text
-informations_demandees["prix hors taxes"] = product_information_values[2].text
-informations_demandees["prix taxes incluses"] = product_information_values[3].text
-informations_demandees["nombres disponibles"] = extraire_nombre(product_information_values[5].text)
-informations_demandees["note"] = convertir_en_nombre(star_rating)
-
-for key in informations_demandees:
-    print(key + ', ' + str(informations_demandees[key]))
+    # next=''
+    # while next != None:
+    #     next = soup.find('li', class_="next")
+    #     page = next.select('a')
+    #     # print(str(page[0])[9:20])
+    #     url = url[:68]+str(page[0])[9:20]
+    #     response = requests.get(url)
+    #     soup = BeautifulSoup(response.content)
 
 
